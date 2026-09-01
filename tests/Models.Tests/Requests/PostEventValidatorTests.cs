@@ -14,7 +14,7 @@ public class PostEventValidatorTests
     [Fact]
     public void Should_Not_Have_Errors_When_Request_Is_Valid()
     {
-        var result = this.validator.TestValidate(CreateValidRequest());
+        var result = validator.TestValidate(CreateValidRequest());
 
         result.ShouldNotHaveAnyValidationErrors();
     }
@@ -29,7 +29,7 @@ public class PostEventValidatorTests
     {
         var request = CreateValidRequest() with { CountyParishHolding = cph };
 
-        var result = this.validator.TestValidate(request);
+        var result = validator.TestValidate(request);
 
         result.ShouldHaveValidationErrorFor(x => x.CountyParishHolding);
     }
@@ -45,7 +45,7 @@ public class PostEventValidatorTests
         var request = CreateValidRequest();
         typeof(PostEvent).GetProperty(propertyName)!.SetValue(request, string.Empty);
 
-        var result = this.validator.TestValidate(request);
+        var result = validator.TestValidate(request);
 
         result.Errors.ShouldContain(x => x.PropertyName == propertyName);
     }
@@ -61,7 +61,7 @@ public class PostEventValidatorTests
         var request = CreateValidRequest();
         typeof(PostEvent).GetProperty(propertyName)!.SetValue(request, new string('a', 51));
 
-        var result = this.validator.TestValidate(request);
+        var result = validator.TestValidate(request);
 
         result.Errors.ShouldContain(x => x.PropertyName == propertyName);
     }

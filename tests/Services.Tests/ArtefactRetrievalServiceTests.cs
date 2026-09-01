@@ -16,12 +16,12 @@ public class ArtefactRetrievalServiceTests
     [Fact]
     public async Task GetArtefactAsync_Should_Return_Null_When_Artefact_Does_Not_Belong_To_Event()
     {
-        this.repository.GetForEventAsync(
+        repository.GetForEventAsync(
                 Arg.Any<Guid>(),
                 Arg.Any<Guid>(),
                 Arg.Any<CancellationToken>())
             .Returns((ArtefactStorageReference?)null);
-        var service = new ArtefactRetrievalService(this.repository, this.store);
+        var service = new ArtefactRetrievalService(repository, store);
 
         var result = await service.GetArtefactAsync(
             Guid.NewGuid(),
@@ -29,7 +29,7 @@ public class ArtefactRetrievalServiceTests
             TestContext.Current.CancellationToken);
 
         result.ShouldBeNull();
-        await this.store.DidNotReceive().GetAsync(
+        await store.DidNotReceive().GetAsync(
             Arg.Any<string>(),
             TestContext.Current.CancellationToken);
     }
@@ -38,14 +38,14 @@ public class ArtefactRetrievalServiceTests
     public async Task GetArtefactAsync_Should_Return_Null_When_Object_Is_Missing_From_Storage()
     {
         var reference = CreateReference();
-        this.repository.GetForEventAsync(
+        repository.GetForEventAsync(
                 Arg.Any<Guid>(),
                 reference.Id,
                 Arg.Any<CancellationToken>())
             .Returns(reference);
-        this.store.GetAsync(reference.S3Path, Arg.Any<CancellationToken>())
+        store.GetAsync(reference.S3Path, Arg.Any<CancellationToken>())
             .Returns((StoredArtefact?)null);
-        var service = new ArtefactRetrievalService(this.repository, this.store);
+        var service = new ArtefactRetrievalService(repository, store);
 
         var result = await service.GetArtefactAsync(
             Guid.NewGuid(),
@@ -60,14 +60,14 @@ public class ArtefactRetrievalServiceTests
     {
         var reference = CreateReference();
         var content = new MemoryStream([1, 2, 3]);
-        this.repository.GetForEventAsync(
+        repository.GetForEventAsync(
                 Arg.Any<Guid>(),
                 reference.Id,
                 Arg.Any<CancellationToken>())
             .Returns(reference);
-        this.store.GetAsync(reference.S3Path, Arg.Any<CancellationToken>())
+        store.GetAsync(reference.S3Path, Arg.Any<CancellationToken>())
             .Returns(new StoredArtefact() { Content = content, ContentLength = 3, });
-        var service = new ArtefactRetrievalService(this.repository, this.store);
+        var service = new ArtefactRetrievalService(repository, store);
 
         var result = await service.GetArtefactAsync(
             Guid.NewGuid(),

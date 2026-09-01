@@ -57,8 +57,8 @@ create table public.events
   id                    uuid                     default uuid_generate_v4() not null
     constraint events_pk
       primary key,
-  short_id              varchar(32)                                         not null
-    constraint events_short_id_uq
+  url_short_code              varchar(32)                                         not null
+    constraint events_url_short_code_uq
       unique,
   county_parish_holding text                                                not null
     constraint cph_structure_check
@@ -233,7 +233,6 @@ create table public.event_submissions
       check (status in ('Pending', 'Processing', 'Completed', 'Failed')),
   log_id                uuid                                                not null,
   artefact_id           uuid unique,
-  short_id              varchar(32)                                         not null,
   client_id             varchar(100)                                        not null,
   idempotency_key       varchar(255)                                        not null,
   request_fingerprint   char(64)                                            not null,
@@ -255,10 +254,6 @@ alter table public.event_submissions
 
 create index event_submissions_log_id_idx
   on public.event_submissions (log_id);
-
-create unique index event_submissions_created_event_short_id_uq
-  on public.event_submissions (short_id)
-  where type in ('CreateEvent', 'CreateEventWithArtefact');
 
 create table public.outbox_messages
 (

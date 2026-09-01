@@ -12,7 +12,7 @@ public class RequestHeaderNamesTests
     public void HeaderNames_Should_Have_Correct_Values()
     {
         RequestHeaderNames.CorrelationId.ShouldBe("x-cdp-request-id");
-        RequestHeaderNames.ApiKey.ShouldBe("x-api-key");
+        RequestHeaderNames.ApiKeyHeader.ShouldBe("x-api-key");
         RequestHeaderNames.IdempotencyKey.ShouldBe("idempotency-key");
     }
 }

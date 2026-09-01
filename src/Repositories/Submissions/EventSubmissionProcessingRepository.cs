@@ -67,7 +67,6 @@ public class EventSubmissionProcessingRepository(PostgresDbContext context)
             context.Add(new EventEntity()
             {
                 Id = message.LogId,
-                ShortId = message.ShortId,
                 CountyParishHolding = message.CountyParishHolding ??
                     throw new InvalidDataException("County parish holding is required."),
                 CreatedAt = message.CreatedAt ?? DateTimeOffset.UtcNow,
@@ -115,5 +114,35 @@ public class EventSubmissionProcessingRepository(PostgresDbContext context)
         submission.FailureCode = failureCode;
         submission.UpdatedAt = DateTimeOffset.UtcNow;
         await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<int> DeleteTerminalSubmissionsAsync(
+        DateTimeOffset olderThan,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        var submissionIds = await context.Set<EventSubmission>()
+            .Where(x =>
+                (x.Status == SubmissionStatus.Completed || x.Status == SubmissionStatus.Failed) &&
+                x.UpdatedAt < olderThan &&
+                x.OutboxMessages.All(message => message.PublishedAt != null))
+            .OrderBy(x => x.UpdatedAt)
+            .Select(x => x.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+        if (submissionIds.Count == 0)
+        {
+            return 0;
+        }
+
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        await context.Set<OutboxMessage>()
+            .Where(x => submissionIds.Contains(x.SubmissionId))
+            .ExecuteDeleteAsync(cancellationToken);
+        var deleted = await context.Set<EventSubmission>()
+            .Where(x => submissionIds.Contains(x.Id))
+            .ExecuteDeleteAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return deleted;
     }
 }

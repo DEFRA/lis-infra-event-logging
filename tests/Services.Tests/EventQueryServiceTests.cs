@@ -22,7 +22,7 @@ public class EventQueryServiceTests
         var entity = CreateEvent();
         var artefactId = entity.Artefacts.Single().Id;
         var request = new QueryEvents() { Page = 2, PageSize = 10, };
-        this.repository.QueryAsync(request, Arg.Any<CancellationToken>())
+        repository.QueryAsync(request, Arg.Any<CancellationToken>())
             .Returns(new EventQueryPage()
             {
                 Items =
@@ -46,7 +46,7 @@ public class EventQueryServiceTests
                 ],
                 TotalCount = 11,
             });
-        var service = new EventQueryService(this.repository);
+        var service = new EventQueryService(repository);
 
         var result = await service.QueryEventsAsync(request, TestContext.Current.CancellationToken);
 
@@ -56,7 +56,7 @@ public class EventQueryServiceTests
         result.TotalPages.ShouldBe(2);
         var item = result.Items.Single();
         item.LogId.ShouldBe(entity.Id);
-        item.ShortId.ShouldBe(entity.ShortId);
+        item.UrlShortCode.ShouldBe(entity.UrlShortCode);
         item.SubTaxonomyId.ShouldBe(entity.SubTaxonomyId);
         item.Data!.RootElement.GetProperty("reference").GetString().ShouldBe("SUB-1");
         item.Artefacts.Single().Id.ShouldBe(artefactId);
@@ -70,9 +70,9 @@ public class EventQueryServiceTests
     [Fact]
     public async Task GetEventAsync_Should_Return_Null_When_Not_Found()
     {
-        this.repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+        repository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns((EventQueryItem?)null);
-        var service = new EventQueryService(this.repository);
+        var service = new EventQueryService(repository);
 
         var result = await service.GetEventAsync(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -80,19 +80,19 @@ public class EventQueryServiceTests
     }
 
     [Fact]
-    public async Task GetEventByShortIdAsync_Should_Map_The_Event()
+    public async Task GetEventByUrlShortCodeAsync_Should_Map_The_Event()
     {
         var entity = CreateEvent();
-        this.repository.GetByShortIdAsync(entity.ShortId, Arg.Any<CancellationToken>())
+        repository.GetByUrlShortCodeAsync(entity.UrlShortCode, Arg.Any<CancellationToken>())
             .Returns(new EventQueryItem() { Event = entity, Artefacts = [], });
-        var service = new EventQueryService(this.repository);
+        var service = new EventQueryService(repository);
 
-        var result = await service.GetEventByShortIdAsync(
-            entity.ShortId,
+        var result = await service.GetEventByUrlShortCodeAsync(
+            entity.UrlShortCode,
             TestContext.Current.CancellationToken);
 
         result.ShouldNotBeNull();
-        result.ShortId.ShouldBe(entity.ShortId);
+        result.UrlShortCode.ShouldBe(entity.UrlShortCode);
     }
 
     private static EventEntity CreateEvent()
@@ -100,7 +100,7 @@ public class EventQueryServiceTests
         return new EventEntity()
         {
             Id = Guid.NewGuid(),
-            ShortId = "EVT-ABC123",
+            UrlShortCode = "EVT-ABC123",
             CountyParishHolding = "12/345/6789",
             CreatedAt = DateTimeOffset.UtcNow,
             Title = "Birth event",

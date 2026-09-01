@@ -15,6 +15,7 @@ using Defra.Lis.EventLogging.Database;
 using Defra.Lis.EventLogging.Models;
 using Defra.Lis.EventLogging.Repositories;
 using Defra.Lis.EventLogging.Services;
+using Defra.Lis.EventLogging.Worker;
 using Serilog;
 
 [ExcludeFromCodeCoverage]
@@ -67,7 +68,8 @@ public static class Program
             .AddRepositories(configuration)
             .AddRequests(configuration)
             .AddValidators()
-            .AddServices(configuration);
+            .AddServices(configuration)
+            .AddEventSubmissionWorkers(configuration);
     }
 
     [ExcludeFromCodeCoverage]

@@ -10,7 +10,7 @@ public record EventResult
 {
     public required Guid LogId { get; init; }
 
-    public required string ShortId { get; init; }
+    public required string UrlShortCode { get; init; }
 
     public required string CountyParishHolding { get; init; }
 

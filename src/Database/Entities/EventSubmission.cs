@@ -19,8 +19,6 @@ public class EventSubmission
 
     public Guid? ArtefactId { get; set; }
 
-    public string ShortId { get; set; } = null!;
-
     public string ClientId { get; set; } = null!;
 
     public string IdempotencyKey { get; set; } = null!;

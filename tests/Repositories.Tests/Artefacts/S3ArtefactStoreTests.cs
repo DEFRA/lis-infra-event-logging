@@ -22,11 +22,11 @@ public class S3ArtefactStoreTests
         var eventId = Guid.NewGuid();
         var artefactId = Guid.NewGuid();
         var key = $"{eventId:D}/{artefactId:D}";
-        var store = CreateStore(this.s3Client);
+        var store = CreateStore(s3Client);
 
         await store.PutAsync(key, content, "application/pdf", TestContext.Current.CancellationToken);
 
-        await this.s3Client.Received(1).PutObjectAsync(
+        await s3Client.Received(1).PutObjectAsync(
             Arg.Is<PutObjectRequest>(x =>
                 x != null &&
                 x.Key == key &&
@@ -39,11 +39,11 @@ public class S3ArtefactStoreTests
     [Fact]
     public async Task DeleteAsync_Should_Delete_The_Staged_Key()
     {
-        var store = CreateStore(this.s3Client);
+        var store = CreateStore(s3Client);
 
         await store.DeleteAsync("event-id/artefact-id", TestContext.Current.CancellationToken);
 
-        await this.s3Client.Received(1).DeleteObjectAsync(
+        await s3Client.Received(1).DeleteObjectAsync(
             "event-logging-artefacts",
             "event-id/artefact-id",
             TestContext.Current.CancellationToken);
@@ -53,16 +53,16 @@ public class S3ArtefactStoreTests
     public async Task GetAsync_Should_Return_The_S3_Stream()
     {
         var content = new MemoryStream([1, 2, 3]);
-        this.s3Client.GetObjectAsync(Arg.Any<GetObjectRequest>(), Arg.Any<CancellationToken>())
+        s3Client.GetObjectAsync(Arg.Any<GetObjectRequest>(), Arg.Any<CancellationToken>())
             .Returns(new GetObjectResponse() { ResponseStream = content, ContentLength = 3, });
-        var store = CreateStore(this.s3Client);
+        var store = CreateStore(s3Client);
 
         var result = await store.GetAsync("events/item.pdf", TestContext.Current.CancellationToken);
 
         result.ShouldNotBeNull();
         result.Content.ShouldBeSameAs(content);
         result.ContentLength.ShouldBe(3);
-        await this.s3Client.Received(1).GetObjectAsync(
+        await s3Client.Received(1).GetObjectAsync(
             Arg.Is<GetObjectRequest>(x =>
                 x != null &&
                 x.BucketName == "event-logging-artefacts" &&
@@ -73,12 +73,12 @@ public class S3ArtefactStoreTests
     [Fact]
     public async Task GetAsync_Should_Return_Null_When_S3_Object_Does_Not_Exist()
     {
-        this.s3Client.GetObjectAsync(Arg.Any<GetObjectRequest>(), Arg.Any<CancellationToken>())
+        s3Client.GetObjectAsync(Arg.Any<GetObjectRequest>(), Arg.Any<CancellationToken>())
             .Returns<Task<GetObjectResponse>>(_ => throw new AmazonS3Exception("Not found")
             {
                 StatusCode = HttpStatusCode.NotFound,
             });
-        var store = CreateStore(this.s3Client);
+        var store = CreateStore(s3Client);
 
         var result = await store.GetAsync("missing", TestContext.Current.CancellationToken);
 
@@ -89,7 +89,7 @@ public class S3ArtefactStoreTests
     public async Task GetAsync_Should_Reject_Missing_Bucket_Configuration()
     {
         var store = new S3ArtefactStore(
-            this.s3Client,
+            s3Client,
             Options.Create(new ArtefactStorageOptions()));
 
         var action = () => store.GetAsync("item", TestContext.Current.CancellationToken);

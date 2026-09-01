@@ -78,29 +78,8 @@ services:
       PORT: 8080
       ASPNETCORE_ENVIRONMENT: Development
       LOCALSTACK_ENDPOINT: http://localstack:4566
-      POSTGRES_URI: http://postgres:5432
-      ConnectionStrings__PostgresConnection: "User ID=lis_infra_feature_flag_ddl;Password=postgres;Host=postgres;Database=lis_infra_feature_flag;"
-      ConnectionStrings__ReadOnlyPostgresConnection: "User ID=lis_infra_feature_flag_ddl;Password=postgres;Host=postgres;Database=lis_infra_feature_flag;"
-    networks:
-      - cdp-tenant
-
-  event-logging-worker:
-    container_name: event-logging-worker
-    platform: linux
-    build:
-      context: ./
-      dockerfile: src/Worker/Dockerfile
-    depends_on:
-      floci:
-        condition: service_healthy
-      postgres:
-        condition: service_started
-      liquibase:
-        condition: service_completed_successfully
-    env_file:
-      - 'compose/aws.env'
-    environment:
       AWS_ENDPOINT_URL: http://floci:4566
+      POSTGRES_URI: http://postgres:5432
       ConnectionStrings__PostgresConnection: "User ID=lis_infra_feature_flag_ddl;Password=postgres;Host=postgres;Database=lis_infra_feature_flag;"
       ConnectionStrings__ReadOnlyPostgresConnection: "User ID=lis_infra_feature_flag_ddl;Password=postgres;Host=postgres;Database=lis_infra_feature_flag;"
       EventSubmissionQueue__QueueUrl: http://floci:4566/000000000000/event-submission

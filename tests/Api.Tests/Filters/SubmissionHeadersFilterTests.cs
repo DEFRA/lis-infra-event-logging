@@ -18,7 +18,7 @@ public class SubmissionHeadersFilterTests
         var context = EndpointFilterInvocationContext.Create(new DefaultHttpContext());
         var nextCalled = false;
 
-        var result = await this.filter.InvokeAsync(context, _ =>
+        var result = await filter.InvokeAsync(context, _ =>
         {
             nextCalled = true;
             return ValueTask.FromResult<object?>(Results.Ok());
@@ -35,7 +35,7 @@ public class SubmissionHeadersFilterTests
         httpContext.Request.Headers[RequestHeaderNames.IdempotencyKey] = new string('a', 256);
         var context = EndpointFilterInvocationContext.Create(httpContext);
 
-        var result = await this.filter.InvokeAsync(
+        var result = await filter.InvokeAsync(
             context,
             _ => ValueTask.FromResult<object?>(Results.Ok()));
 
@@ -50,7 +50,7 @@ public class SubmissionHeadersFilterTests
         var context = EndpointFilterInvocationContext.Create(httpContext);
         var expected = new object();
 
-        var result = await this.filter.InvokeAsync(
+        var result = await filter.InvokeAsync(
             context,
             _ => ValueTask.FromResult<object?>(expected));
 

@@ -34,11 +34,11 @@ public class EventQueryService(IEventQueryRepository repository) : IEventQuerySe
         return result is null ? null : MapEvent(result);
     }
 
-    public async Task<EventResult?> GetEventByShortIdAsync(
-        string shortId,
+    public async Task<EventResult?> GetEventByUrlShortCodeAsync(
+        string urlShortCode,
         CancellationToken cancellationToken = default)
     {
-        var result = await repository.GetByShortIdAsync(shortId, cancellationToken);
+        var result = await repository.GetByUrlShortCodeAsync(urlShortCode, cancellationToken);
         return result is null ? null : MapEvent(result);
     }
 
@@ -49,7 +49,7 @@ public class EventQueryService(IEventQueryRepository repository) : IEventQuerySe
         return new EventResult()
         {
             LogId = entity.Id,
-            ShortId = entity.ShortId,
+            UrlShortCode = entity.UrlShortCode,
             CountyParishHolding = entity.CountyParishHolding,
             CreatedAt = entity.CreatedAt,
             Title = entity.Title,

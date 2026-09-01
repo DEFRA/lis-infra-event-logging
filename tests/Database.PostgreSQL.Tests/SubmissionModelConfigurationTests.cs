@@ -21,13 +21,13 @@ public class SubmissionModelConfigurationTests
             .Options;
 
         using var context = new TestDbContext(options);
-        this.model = context.Model;
+        model = context.Model;
     }
 
     [Fact]
     public void EventSubmission_Should_Enforce_Client_Idempotency()
     {
-        var entity = this.model.FindEntityType(typeof(EventSubmission))!;
+        var entity = model.FindEntityType(typeof(EventSubmission))!;
         var index = entity.GetIndexes().Single(x =>
             x.Properties.Select(p => p.Name).SequenceEqual(
                 [nameof(EventSubmission.ClientId), nameof(EventSubmission.IdempotencyKey)]));
@@ -36,20 +36,9 @@ public class SubmissionModelConfigurationTests
     }
 
     [Fact]
-    public void EventSubmission_Should_Reserve_ShortIds_For_Event_Creation()
-    {
-        var entity = this.model.FindEntityType(typeof(EventSubmission))!;
-        var index = entity.GetIndexes().Single(x =>
-            x.Properties.Select(p => p.Name).SequenceEqual([nameof(EventSubmission.ShortId)]));
-
-        index.IsUnique.ShouldBeTrue();
-        index.GetFilter().ShouldBe("type IN ('CreateEvent', 'CreateEventWithArtefact')");
-    }
-
-    [Fact]
     public void EventSubmission_Should_Store_Enums_As_Text()
     {
-        var entity = this.model.FindEntityType(typeof(EventSubmission))!;
+        var entity = model.FindEntityType(typeof(EventSubmission))!;
 
         entity.FindProperty(nameof(EventSubmission.Type))!.GetMaxLength().ShouldBe(50);
         entity.FindProperty(nameof(EventSubmission.Status))!.GetMaxLength().ShouldBe(50);
@@ -58,7 +47,7 @@ public class SubmissionModelConfigurationTests
     [Fact]
     public void OutboxMessage_Should_Store_Payload_As_Jsonb()
     {
-        var entity = this.model.FindEntityType(typeof(OutboxMessage))!;
+        var entity = model.FindEntityType(typeof(OutboxMessage))!;
 
         entity.FindProperty(nameof(OutboxMessage.Payload))!.GetColumnType().ShouldBe("jsonb");
     }
@@ -66,7 +55,7 @@ public class SubmissionModelConfigurationTests
     [Fact]
     public void OutboxMessage_Should_Require_A_Submission()
     {
-        var entity = this.model.FindEntityType(typeof(OutboxMessage))!;
+        var entity = model.FindEntityType(typeof(OutboxMessage))!;
         var foreignKey = entity.GetForeignKeys().Single();
 
         foreignKey.PrincipalEntityType.ClrType.ShouldBe(typeof(EventSubmission));
@@ -74,9 +63,9 @@ public class SubmissionModelConfigurationTests
     }
 
     [Fact]
-    public void Event_Should_Have_Query_Indexes_And_A_Unique_ShortId()
+    public void Event_Should_Have_Query_Indexes_And_A_Unique_UrlShortCode()
     {
-        var entity = this.model.FindEntityType(typeof(EventEntity))!;
+        var entity = model.FindEntityType(typeof(EventEntity))!;
         var indexes = entity.GetIndexes().ToList();
         string[] createdAtIndex = [nameof(EventEntity.CreatedAt), nameof(EventEntity.Id)];
         string[] cphIndex =
@@ -84,16 +73,17 @@ public class SubmissionModelConfigurationTests
             nameof(EventEntity.CountyParishHolding), nameof(EventEntity.CreatedAt), nameof(EventEntity.Id),
         ];
 
-        indexes.Single(x => x.Properties.Select(p => p.Name).SequenceEqual([nameof(EventEntity.ShortId)]))
+        indexes.Single(x => x.Properties.Select(p => p.Name).SequenceEqual([nameof(EventEntity.UrlShortCode)]))
             .IsUnique.ShouldBeTrue();
         indexes.ShouldContain(x => x.Properties.Select(p => p.Name).SequenceEqual(createdAtIndex));
         indexes.ShouldContain(x => x.Properties.Select(p => p.Name).SequenceEqual(cphIndex));
+        entity.FindProperty(nameof(EventEntity.UrlShortCode))!.ValueGenerated.ShouldBe(ValueGenerated.OnAdd);
     }
 
     [Fact]
     public void ExtractionToken_Name_Should_Be_Unique()
     {
-        var entity = this.model.FindEntityType(typeof(EventExtractionToken))!;
+        var entity = model.FindEntityType(typeof(EventExtractionToken))!;
         var index = entity.GetIndexes().Single(x =>
             x.Properties.Select(p => p.Name).SequenceEqual([nameof(EventExtractionToken.Name)]));
 
@@ -103,7 +93,7 @@ public class SubmissionModelConfigurationTests
     [Fact]
     public void EventArtefact_Should_Not_Cascade_When_An_Event_Is_Deleted()
     {
-        var entity = this.model.FindEntityType(typeof(EventArtefact))!;
+        var entity = model.FindEntityType(typeof(EventArtefact))!;
         var foreignKey = entity.GetForeignKeys().Single(x => x.PrincipalEntityType.ClrType == typeof(EventEntity));
 
         foreignKey.DeleteBehavior.ShouldBe(DeleteBehavior.NoAction);
@@ -112,7 +102,7 @@ public class SubmissionModelConfigurationTests
     [Fact]
     public void EventArtefact_Should_Store_Thumbnail_Status_As_Text()
     {
-        var entity = this.model.FindEntityType(typeof(EventArtefact))!;
+        var entity = model.FindEntityType(typeof(EventArtefact))!;
         var status = entity.FindProperty(nameof(EventArtefact.ThumbnailStatus))!;
 
         status.GetMaxLength().ShouldBe(20);

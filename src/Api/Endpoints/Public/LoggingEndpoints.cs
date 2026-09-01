@@ -28,7 +28,7 @@ public static class LoggingEndpoints
             .WithTags(nameof(RouteNames.Log))
             .AddEndpointFilter<SubmissionHeadersFilter>()
             .AddEndpointFilter<ValidationFilter<PostEvent>>()
-            .Produces<EventSubmissionResult>(StatusCodes.Status202Accepted, MediaTypeNames.Application.Json);
+            .Produces<EventAcceptedResult>(StatusCodes.Status202Accepted, MediaTypeNames.Application.Json);
 
         app.MapPost($"{RouteNames.Log}/with-artefact", SubmitEventWithArtefactRoute)
             .WithName("SubmitEventWithArtefact")
@@ -36,7 +36,7 @@ public static class LoggingEndpoints
             .AddEndpointFilter<SubmissionHeadersFilter>()
             .DisableAntiforgery()
             .Accepts<PostEventWithArtefactForm>("multipart/form-data")
-            .Produces<EventSubmissionResult>(StatusCodes.Status202Accepted, MediaTypeNames.Application.Json);
+            .Produces<EventAcceptedResult>(StatusCodes.Status202Accepted, MediaTypeNames.Application.Json);
 
         app.MapPost($"{RouteNames.Log}/{{logId:guid}}/artefacts", SubmitArtefactRoute)
             .WithName("SubmitArtefact")
@@ -44,13 +44,7 @@ public static class LoggingEndpoints
             .AddEndpointFilter<SubmissionHeadersFilter>()
             .DisableAntiforgery()
             .Accepts<PostArtefactForm>("multipart/form-data")
-            .Produces<EventSubmissionResult>(StatusCodes.Status202Accepted, MediaTypeNames.Application.Json);
-
-        app.MapGet($"{RouteNames.Submissions}/{{submissionId:guid}}", GetSubmissionStatusRoute)
-            .WithName("GetEventSubmissionStatus")
-            .WithTags(nameof(RouteNames.Submissions))
-            .Produces<EventSubmissionStatusResult>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .Produces<EventAcceptedResult>(StatusCodes.Status202Accepted, MediaTypeNames.Application.Json);
     }
 
     private static async Task<IResult> SubmitEventRoute(
@@ -113,23 +107,14 @@ public static class LoggingEndpoints
         return SubmissionAccepted(result);
     }
 
-    private static async Task<IResult> GetSubmissionStatusRoute(
-        Guid submissionId,
-        [FromServices] IEventLoggingService service,
-        CancellationToken cancellationToken)
+    private static IResult SubmissionAccepted(EventAcceptedResult result)
     {
-        var result = await service.GetSubmissionStatusAsync(submissionId, cancellationToken);
-        return result is null ? Results.NotFound() : Results.Ok(result);
-    }
-
-    private static IResult SubmissionAccepted(EventSubmissionResult result)
-    {
-        return Results.Accepted($"/{RouteNames.Submissions}/{result.SubmissionId}", result);
+        return Results.Accepted(value: result);
     }
 
     private static SubmissionContext CreateSubmissionContext(HttpContext context)
     {
-        var apiKey = context.Request.Headers[RequestHeaderNames.ApiKey].ToString();
+        var apiKey = context.Request.Headers[RequestHeaderNames.ApiKeyHeader].ToString();
 
         return new SubmissionContext()
         {

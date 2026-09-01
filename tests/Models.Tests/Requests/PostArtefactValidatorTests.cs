@@ -14,7 +14,7 @@ public class PostArtefactValidatorTests
     [Fact]
     public void Should_Not_Have_Errors_When_Request_Is_Valid()
     {
-        var result = this.validator.TestValidate(CreateValidRequest());
+        var result = validator.TestValidate(CreateValidRequest());
 
         result.ShouldNotHaveAnyValidationErrors();
     }
@@ -24,7 +24,7 @@ public class PostArtefactValidatorTests
     {
         var request = CreateValidRequest() with { Content = new UnreadableStream() };
 
-        var result = this.validator.TestValidate(request);
+        var result = validator.TestValidate(request);
 
         result.ShouldHaveValidationErrorFor(x => x.Content);
     }
@@ -34,7 +34,7 @@ public class PostArtefactValidatorTests
     {
         var request = CreateValidRequest() with { Content = null! };
 
-        var result = this.validator.TestValidate(request);
+        var result = validator.TestValidate(request);
 
         result.ShouldHaveValidationErrorFor(x => x.Content);
     }
@@ -46,7 +46,7 @@ public class PostArtefactValidatorTests
     {
         var request = CreateValidRequest() with { Size = size };
 
-        var result = this.validator.TestValidate(request);
+        var result = validator.TestValidate(request);
 
         result.ShouldHaveValidationErrorFor(x => x.Size);
     }
@@ -58,7 +58,7 @@ public class PostArtefactValidatorTests
     {
         var request = CreateValidRequest() with { MimeType = mimeType };
 
-        var result = this.validator.TestValidate(request);
+        var result = validator.TestValidate(request);
 
         result.ShouldHaveValidationErrorFor(x => x.MimeType);
     }
@@ -70,7 +70,7 @@ public class PostArtefactValidatorTests
     {
         var request = CreateValidRequest() with { OriginalFilename = filename };
 
-        var result = this.validator.TestValidate(request);
+        var result = validator.TestValidate(request);
 
         result.ShouldHaveValidationErrorFor(x => x.OriginalFilename);
     }

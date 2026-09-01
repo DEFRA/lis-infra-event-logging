@@ -7,6 +7,9 @@ namespace Defra.Lis.EventLogging.Worker;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using Defra.Lis.EventLogging.Repositories.Submissions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 public class OutboxPublisherService(

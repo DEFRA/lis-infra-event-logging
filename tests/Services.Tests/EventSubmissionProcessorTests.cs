@@ -19,12 +19,12 @@ public class EventSubmissionProcessorTests
     public async Task ProcessAsync_Should_Persist_Then_Generate_The_Thumbnail()
     {
         var message = CreateMessage(Guid.NewGuid());
-        var processor = new EventSubmissionProcessor(this.repository, this.thumbnailProcessor);
+        var processor = new EventSubmissionProcessor(repository, thumbnailProcessor);
 
         await processor.ProcessAsync(message, TestContext.Current.CancellationToken);
 
-        await this.repository.Received().CompleteAsync(message, TestContext.Current.CancellationToken);
-        await this.thumbnailProcessor.Received().ProcessAsync(
+        await repository.Received().CompleteAsync(message, TestContext.Current.CancellationToken);
+        await thumbnailProcessor.Received().ProcessAsync(
             message.ArtefactId!.Value,
             TestContext.Current.CancellationToken);
     }
@@ -33,11 +33,11 @@ public class EventSubmissionProcessorTests
     public async Task ProcessAsync_Should_Not_Generate_A_Thumbnail_When_There_Is_No_Artefact()
     {
         var message = CreateMessage(null);
-        var processor = new EventSubmissionProcessor(this.repository, this.thumbnailProcessor);
+        var processor = new EventSubmissionProcessor(repository, thumbnailProcessor);
 
         await processor.ProcessAsync(message, TestContext.Current.CancellationToken);
 
-        await this.thumbnailProcessor.DidNotReceive().ProcessAsync(
+        await thumbnailProcessor.DidNotReceive().ProcessAsync(
             Arg.Any<Guid>(),
             Arg.Any<CancellationToken>());
     }
@@ -46,13 +46,13 @@ public class EventSubmissionProcessorTests
     public async Task ProcessAsync_Should_Record_Persistence_Failure_And_Rethrow()
     {
         var message = CreateMessage(null);
-        this.repository.CompleteAsync(message, Arg.Any<CancellationToken>())
+        repository.CompleteAsync(message, Arg.Any<CancellationToken>())
             .Returns<bool>(_ => throw new InvalidOperationException("database"));
-        var processor = new EventSubmissionProcessor(this.repository, this.thumbnailProcessor);
+        var processor = new EventSubmissionProcessor(repository, thumbnailProcessor);
 
         await Should.ThrowAsync<InvalidOperationException>(() =>
             processor.ProcessAsync(message, TestContext.Current.CancellationToken));
-        await this.repository.Received().MarkSubmissionFailedAsync(
+        await repository.Received().MarkSubmissionFailedAsync(
             message.SubmissionId,
             "persistence_failed",
             CancellationToken.None);
@@ -62,11 +62,11 @@ public class EventSubmissionProcessorTests
     public async Task ProcessAsync_Should_Reject_Unknown_Schema_Versions()
     {
         var message = CreateMessage(null) with { SchemaVersion = 2, };
-        var processor = new EventSubmissionProcessor(this.repository, this.thumbnailProcessor);
+        var processor = new EventSubmissionProcessor(repository, thumbnailProcessor);
 
         await Should.ThrowAsync<InvalidDataException>(() =>
             processor.ProcessAsync(message, TestContext.Current.CancellationToken));
-        await this.repository.DidNotReceive().CompleteAsync(
+        await repository.DidNotReceive().CompleteAsync(
             Arg.Any<EventSubmissionMessage>(),
             Arg.Any<CancellationToken>());
     }
@@ -79,7 +79,6 @@ public class EventSubmissionProcessorTests
             SubmissionId = Guid.NewGuid(),
             LogId = Guid.NewGuid(),
             ArtefactId = artefactId,
-            ShortId = "EVT-123",
         };
     }
 }

@@ -29,7 +29,7 @@ public class EventQueryRepositoryTests
             TestContext.Current.CancellationToken);
 
         result.TotalCount.ShouldBe(3);
-        result.Items.Select(x => x.Event.ShortId).ShouldBe(["EVT-003", "EVT-002", "EVT-001"]);
+        result.Items.Select(x => x.Event.UrlShortCode).ShouldBe(["EVT-003", "EVT-002", "EVT-001"]);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class EventQueryRepositoryTests
             TestContext.Current.CancellationToken);
 
         result.TotalCount.ShouldBe(2);
-        result.Items.Single().Event.ShortId.ShouldBe("EVT-001");
+        result.Items.Single().Event.UrlShortCode.ShouldBe("EVT-001");
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class EventQueryRepositoryTests
             },
             TestContext.Current.CancellationToken);
 
-        result.Items.Single().Event.ShortId.ShouldBe("EVT-001");
+        result.Items.Single().Event.UrlShortCode.ShouldBe("EVT-001");
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class EventQueryRepositoryTests
             TestContext.Current.CancellationToken);
 
         result.TotalCount.ShouldBe(2);
-        result.Items.Select(x => x.Event.ShortId).ShouldBe(["EVT-002", "EVT-001"]);
+        result.Items.Select(x => x.Event.UrlShortCode).ShouldBe(["EVT-002", "EVT-001"]);
     }
 
     [Fact]
@@ -115,13 +115,13 @@ public class EventQueryRepositoryTests
     }
 
     [Fact]
-    public async Task GetByShortIdAsync_Should_Return_Only_Artefact_References()
+    public async Task GetByUrlShortCodeAsync_Should_Return_Only_Artefact_References()
     {
         var fixture = await CreateFixtureAsync();
         await using var context = fixture.CreateReadContext();
         var repository = new EventQueryRepository(context);
 
-        var result = await repository.GetByShortIdAsync(
+        var result = await repository.GetByUrlShortCodeAsync(
             "EVT-001",
             TestContext.Current.CancellationToken);
 
@@ -139,7 +139,7 @@ public class EventQueryRepositoryTests
         await using var context = fixture.CreateReadContext();
         var queryRepository = new EventQueryRepository(context);
         var artefactRepository = new ArtefactRepository(writeContext, context);
-        var eventResult = await queryRepository.GetByShortIdAsync(
+        var eventResult = await queryRepository.GetByUrlShortCodeAsync(
             "EVT-001",
             TestContext.Current.CancellationToken);
 
@@ -160,12 +160,16 @@ public class EventQueryRepositoryTests
         var species = new EventSpecies { Id = Guid.NewGuid(), Name = "CTT", };
         var subTaxonomy = new EventSubTaxonomy
         {
-            Id = Guid.NewGuid(), Name = "DEFAULT", Taxonomy = taxonomy, Species = species,
+            Id = Guid.NewGuid(),
+            Name = "DEFAULT",
+            Taxonomy = taxonomy,
+            Species = species,
         };
         var earTag = new EventExtractionToken { Id = Guid.NewGuid(), Name = "ear_tag", };
         var submissionReference = new EventExtractionToken
         {
-            Id = Guid.NewGuid(), Name = "submission_ref",
+            Id = Guid.NewGuid(),
+            Name = "submission_ref",
         };
         var earTagRule = new EventExtractionRule
         {
@@ -210,7 +214,7 @@ public class EventQueryRepositoryTests
     }
 
     private static EventEntity CreateEvent(
-        string shortId,
+        string urlShortCode,
         string title,
         string cph,
         EventSubTaxonomy subTaxonomy,
@@ -219,7 +223,7 @@ public class EventQueryRepositoryTests
         return new EventEntity()
         {
             Id = Guid.NewGuid(),
-            ShortId = shortId,
+            UrlShortCode = urlShortCode,
             CountyParishHolding = cph,
             CreatedAt = new DateTimeOffset(2026, 1, day, 0, 0, 0, TimeSpan.Zero),
             Title = title,

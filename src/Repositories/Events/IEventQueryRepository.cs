@@ -14,5 +14,7 @@ public interface IEventQueryRepository
 
     Task<EventQueryItem?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-    Task<EventQueryItem?> GetByShortIdAsync(string shortId, CancellationToken cancellationToken = default);
+    Task<EventQueryItem?> GetByUrlShortCodeAsync(
+        string urlShortCode,
+        CancellationToken cancellationToken = default);
 }

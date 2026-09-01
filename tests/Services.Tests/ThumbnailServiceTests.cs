@@ -24,7 +24,10 @@ public class ThumbnailServiceTests
     {
         var generated = new GeneratedThumbnail()
         {
-            Content = [1], MimeType = "image/webp", Width = 1, Height = 1,
+            Content = [1],
+            MimeType = "image/webp",
+            Width = 1,
+            Height = 1,
         };
         var generator = Substitute.For<IThumbnailGenerator>();
         generator.Supports("image/png").Returns(true);

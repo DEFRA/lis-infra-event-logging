@@ -6,6 +6,7 @@ namespace Defra.Lis.EventLogging.Api.Tests.Endpoints;
 
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using Defra.Lis.EventLogging.Api.Endpoints.Public;
 using Defra.Lis.EventLogging.Api.Middleware.Headers;
 using Defra.Lis.EventLogging.Models;
@@ -29,19 +30,16 @@ public class LoggingEndpointsTests
                 Arg.Do<PostEventWithArtefact>(x => captured = x),
                 Arg.Any<SubmissionContext>(),
                 Arg.Any<CancellationToken>())
-            .Returns(new EventSubmissionResult()
+            .Returns(new EventAcceptedResult()
             {
-                SubmissionId = Guid.NewGuid(),
                 LogId = Guid.NewGuid(),
                 ArtefactId = Guid.NewGuid(),
-                ShortId = "EVT-ABC",
-                Status = SubmissionStatus.Pending,
             });
 
         await using var app = await CreateApplicationAsync(service);
         using var client = app.GetTestClient();
         using var content = CreateMultipartContent();
-        client.DefaultRequestHeaders.Add(RequestHeaderNames.ApiKey, "test-key");
+        client.DefaultRequestHeaders.Add(RequestHeaderNames.ApiKeyHeader, "test-key");
         client.DefaultRequestHeaders.Add(RequestHeaderNames.CorrelationId, Guid.NewGuid().ToString());
         client.DefaultRequestHeaders.Add(RequestHeaderNames.IdempotencyKey, "request-1");
 
@@ -51,6 +49,12 @@ public class LoggingEndpointsTests
             TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        response.Headers.Location.ShouldBeNull();
+        using var responseBody = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        responseBody.RootElement.TryGetProperty("logId", out _).ShouldBeTrue();
+        responseBody.RootElement.TryGetProperty("submissionId", out _).ShouldBeFalse();
+        responseBody.RootElement.TryGetProperty("status", out _).ShouldBeFalse();
         captured.ShouldNotBeNull();
         captured.Event.CountyParishHolding.ShouldBe("12/345/6789");
         captured.Artefact.OriginalFilename.ShouldBe("original-report.pdf");

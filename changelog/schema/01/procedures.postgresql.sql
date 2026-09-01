@@ -154,6 +154,83 @@ $$;
 alter function decompose_event_data() owner
   to lis_infra_event_logging_ddl;
 
+create function public.generate_short_url_code() returns trigger
+  language plpgsql
+as
+$$
+DECLARE
+  v_alphabet constant text := '23456789ABCDEFGHJKMNPQRSTVWXYZ';
+  v_base constant integer := 30;
+  v_length constant integer := 12;
+  v_attempt integer := 0;
+  v_short_code text;
+  v_exists boolean;
+  v_hash bytea;
+  v_value numeric;
+  v_mod integer;
+  v_uuid_bytes bytea;
+BEGIN
+  IF NEW.id IS NULL THEN
+    RAISE EXCEPTION 'Cannot generate a short URL code without an event ID.';
+  END IF;
+
+  LOOP
+    v_uuid_bytes := uuid_send(NEW.id);
+
+    IF v_attempt > 0 THEN
+      v_uuid_bytes := set_byte(
+        v_uuid_bytes,
+        15,
+        get_byte(v_uuid_bytes, 15) # (v_attempt & 255)
+      );
+      v_uuid_bytes := set_byte(
+        v_uuid_bytes,
+        14,
+        get_byte(v_uuid_bytes, 14) # ((v_attempt >> 8) & 255)
+      );
+    END IF;
+
+    v_hash := digest(v_uuid_bytes, 'sha256');
+    v_value := 0;
+
+    FOR i IN 0..7 LOOP
+      v_value := (v_value * 256) + get_byte(v_hash, i);
+    END LOOP;
+
+    v_short_code := '';
+
+    FOR i IN 1..v_length LOOP
+      v_mod := (v_value % v_base)::integer;
+      v_short_code := v_short_code
+          || substr(v_alphabet, v_mod + 1, 1);
+      v_value := floor(v_value / v_base);
+    END LOOP;
+
+    SELECT EXISTS (
+      SELECT 1
+      FROM public.events AS e
+      WHERE e.url_short_code = v_short_code
+    )
+    INTO v_exists;
+
+    IF NOT v_exists THEN
+      NEW.url_short_code := v_short_code;
+      RETURN NEW;
+    END IF;
+
+    v_attempt := v_attempt + 1;
+
+    IF v_attempt > 10 THEN
+      RAISE EXCEPTION
+        'Safety threshold exceeded: unable to resolve short URL code collision.';
+    END IF;
+  END LOOP;
+END;
+$$;
+
+alter function public.generate_short_url_code() owner to lis_infra_event_logging_ddl;
+
+
 -- changeset system:initial-seed-5
 create trigger events_clear_extracted_values_before_update
   before update of data, sub_taxonomy_id on public.events
@@ -162,3 +239,9 @@ create trigger events_clear_extracted_values_before_update
 create trigger events_decompose_data_after_insert_or_update
   after insert or update of data, sub_taxonomy_id on public.events
   for each row execute function decompose_event_data();
+
+create trigger events_generate_short_url_code
+  before insert
+  on events
+  for each row
+  execute procedure generate_short_url_code();

@@ -14,14 +14,10 @@ public sealed class EventSubmissionConfiguration : IEntityTypeConfiguration<Even
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.LogId);
         builder.HasIndex(x => x.ArtefactId).IsUnique();
-        builder.HasIndex(x => x.ShortId)
-            .IsUnique()
-            .HasFilter("type IN ('CreateEvent', 'CreateEventWithArtefact')");
         builder.HasIndex(x => new { x.ClientId, x.IdempotencyKey }).IsUnique();
         builder.Property(x => x.Id).HasDefaultValueSql("uuid_generate_v4()");
         builder.Property(x => x.Type).HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
-        builder.Property(x => x.ShortId).HasMaxLength(32).IsRequired();
         builder.Property(x => x.ClientId).HasMaxLength(100).IsRequired();
         builder.Property(x => x.IdempotencyKey).HasMaxLength(255).IsRequired();
         builder.Property(x => x.RequestFingerprint).HasMaxLength(64).IsRequired();

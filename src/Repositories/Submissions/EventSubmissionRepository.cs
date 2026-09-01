@@ -25,15 +25,6 @@ public class EventSubmissionRepository(
                 cancellationToken);
     }
 
-    public Task<EventSubmission?> GetByIdAsync(
-        Guid submissionId,
-        CancellationToken cancellationToken = default)
-    {
-        return readContext.Set<EventSubmission>()
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == submissionId, cancellationToken);
-    }
-
     public Task<Guid?> ResolveSubTaxonomyIdAsync(
         string species,
         string taxonomy,
@@ -50,13 +41,11 @@ public class EventSubmissionRepository(
             .SingleOrDefaultAsync(cancellationToken);
     }
 
-    public Task<string?> GetEventShortIdAsync(Guid eventId, CancellationToken cancellationToken = default)
+    public Task<bool> EventExistsAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
         return readContext.Set<EventEntity>()
             .AsNoTracking()
-            .Where(x => x.Id == eventId)
-            .Select(x => x.ShortId)
-            .SingleOrDefaultAsync(cancellationToken);
+            .AnyAsync(x => x.Id == eventId, cancellationToken);
     }
 
     public async Task CreateAsync(

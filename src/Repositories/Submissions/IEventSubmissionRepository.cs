@@ -13,17 +13,13 @@ public interface IEventSubmissionRepository
         string idempotencyKey,
         CancellationToken cancellationToken = default);
 
-    Task<EventSubmission?> GetByIdAsync(
-        Guid submissionId,
-        CancellationToken cancellationToken = default);
-
     Task<Guid?> ResolveSubTaxonomyIdAsync(
         string species,
         string taxonomy,
         string subTaxonomy,
         CancellationToken cancellationToken = default);
 
-    Task<string?> GetEventShortIdAsync(Guid eventId, CancellationToken cancellationToken = default);
+    Task<bool> EventExistsAsync(Guid eventId, CancellationToken cancellationToken = default);
 
     Task CreateAsync(
         EventSubmission submission,

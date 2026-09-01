@@ -24,14 +24,14 @@ public class OutboxPublisherServiceTests
     [Fact]
     public async Task PublishBatchAsync_Should_Return_False_When_The_Outbox_Is_Empty()
     {
-        this.repository.GetUnpublishedAsync(10, Arg.Any<CancellationToken>())
+        repository.GetUnpublishedAsync(10, Arg.Any<CancellationToken>())
             .Returns(Array.Empty<OutboxMessage>());
-        var service = this.CreateService();
+        var service = CreateService();
 
         var result = await service.PublishBatchAsync(TestContext.Current.CancellationToken);
 
         result.ShouldBeFalse();
-        await this.sqs.DidNotReceive().SendMessageAsync(
+        await sqs.DidNotReceive().SendMessageAsync(
             Arg.Any<SendMessageRequest>(),
             Arg.Any<CancellationToken>());
     }
@@ -40,20 +40,20 @@ public class OutboxPublisherServiceTests
     public async Task PublishBatchAsync_Should_Publish_And_Mark_The_Message()
     {
         var message = CreateMessage();
-        this.repository.GetUnpublishedAsync(10, Arg.Any<CancellationToken>()).Returns([message]);
-        this.sqs.SendMessageAsync(Arg.Any<SendMessageRequest>(), Arg.Any<CancellationToken>())
+        repository.GetUnpublishedAsync(10, Arg.Any<CancellationToken>()).Returns([message]);
+        sqs.SendMessageAsync(Arg.Any<SendMessageRequest>(), Arg.Any<CancellationToken>())
             .Returns(new SendMessageResponse());
-        var service = this.CreateService();
+        var service = CreateService();
 
         var result = await service.PublishBatchAsync(TestContext.Current.CancellationToken);
 
         result.ShouldBeTrue();
-        await this.sqs.Received().SendMessageAsync(
+        await sqs.Received().SendMessageAsync(
             Arg.Is<SendMessageRequest>(x => x != null &&
                 x.QueueUrl == "queue-url" &&
                 x.MessageBody == message.Payload.RootElement.GetRawText()),
             TestContext.Current.CancellationToken);
-        await this.repository.Received().MarkPublishedAsync(
+        await repository.Received().MarkPublishedAsync(
             message.Id,
             TestContext.Current.CancellationToken);
     }
@@ -62,19 +62,19 @@ public class OutboxPublisherServiceTests
     public async Task PublishBatchAsync_Should_Record_A_Publish_Failure()
     {
         var message = CreateMessage();
-        this.repository.GetUnpublishedAsync(10, Arg.Any<CancellationToken>()).Returns([message]);
-        this.sqs.SendMessageAsync(Arg.Any<SendMessageRequest>(), Arg.Any<CancellationToken>())
+        repository.GetUnpublishedAsync(10, Arg.Any<CancellationToken>()).Returns([message]);
+        sqs.SendMessageAsync(Arg.Any<SendMessageRequest>(), Arg.Any<CancellationToken>())
             .Returns<SendMessageResponse>(_ => throw new AmazonSQSException("unavailable"));
-        var service = this.CreateService();
+        var service = CreateService();
 
         var result = await service.PublishBatchAsync(TestContext.Current.CancellationToken);
 
         result.ShouldBeTrue();
-        await this.repository.Received().MarkPublishFailedAsync(
+        await repository.Received().MarkPublishFailedAsync(
             message.Id,
             nameof(AmazonSQSException),
             CancellationToken.None);
-        await this.repository.DidNotReceive().MarkPublishedAsync(
+        await repository.DidNotReceive().MarkPublishedAsync(
             Arg.Any<Guid>(),
             Arg.Any<CancellationToken>());
     }
@@ -95,11 +95,11 @@ public class OutboxPublisherServiceTests
     private OutboxPublisherService CreateService()
     {
         var services = new ServiceCollection();
-        services.AddSingleton(this.repository);
+        services.AddSingleton(repository);
         var provider = services.BuildServiceProvider();
         return new OutboxPublisherService(
             provider.GetRequiredService<IServiceScopeFactory>(),
-            this.sqs,
+            sqs,
             Options.Create(new QueueOptions() { QueueUrl = "queue-url", }),
             Substitute.For<ILogger<OutboxPublisherService>>());
     }

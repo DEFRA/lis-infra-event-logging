@@ -28,8 +28,8 @@ public static class QueryEndpoints
             .Produces<EventResult>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
-        app.MapGet($"{RouteNames.Events}/short-id/{{shortId}}", GetEventByShortIdRoute)
-            .WithName("GetEventByShortId")
+        app.MapGet($"{RouteNames.Events}/url-short-code/{{urlShortCode}}", GetEventByUrlShortCodeRoute)
+            .WithName("GetEventByUrlShortCode")
             .WithTags(nameof(RouteNames.Events))
             .Produces<EventResult>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)
             .ProducesProblem(StatusCodes.Status404NotFound);
@@ -59,12 +59,12 @@ public static class QueryEndpoints
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
-    private static async Task<IResult> GetEventByShortIdRoute(
-        string shortId,
+    private static async Task<IResult> GetEventByUrlShortCodeRoute(
+        string urlShortCode,
         [FromServices] IEventQueryService service,
         CancellationToken cancellationToken)
     {
-        var result = await service.GetEventByShortIdAsync(shortId, cancellationToken);
+        var result = await service.GetEventByUrlShortCodeAsync(urlShortCode, cancellationToken);
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 

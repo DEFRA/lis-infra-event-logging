@@ -18,8 +18,6 @@ public record EventSubmissionMessage
 
     public Guid? ArtefactId { get; init; }
 
-    public required string ShortId { get; init; }
-
     public string? CountyParishHolding { get; init; }
 
     public DateTimeOffset? CreatedAt { get; init; }

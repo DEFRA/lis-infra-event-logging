@@ -9,6 +9,9 @@ using Amazon.SQS;
 using Amazon.SQS.Model;
 using Defra.Lis.EventLogging.Models.Messages;
 using Defra.Lis.EventLogging.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 public class EventSubmissionConsumerService(

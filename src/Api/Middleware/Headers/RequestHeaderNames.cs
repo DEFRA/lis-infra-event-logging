@@ -7,6 +7,6 @@ namespace Defra.Lis.EventLogging.Api.Middleware.Headers;
 public static class RequestHeaderNames
 {
     public const string CorrelationId = "x-cdp-request-id";
-    public const string ApiKey = "x-api-key";
+    public const string ApiKeyHeader = "x-api-key";
     public const string IdempotencyKey = "idempotency-key";
 }

@@ -22,16 +22,16 @@ public class EventLoggingServiceTests
     public async Task SubmitEventAsync_Should_Create_An_Outbox_Message_Without_An_Artefact()
     {
         var request = CreateRequest().Event;
-        this.repository.ResolveSubTaxonomyIdAsync(
+        repository.ResolveSubTaxonomyIdAsync(
                 request.Species!, request.Taxonomy!, request.SubTaxonomy!, Arg.Any<CancellationToken>())
             .Returns(Guid.NewGuid());
         EventSubmission? saved = null;
-        this.repository.CreateAsync(
+        repository.CreateAsync(
                 Arg.Do<EventSubmission>(x => saved = x),
                 Arg.Any<OutboxMessage>(),
                 Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
-        var service = new EventLoggingService(this.repository, this.store);
+        var service = new EventLoggingService(repository, store);
 
         var result = await service.SubmitEventAsync(
             request,
@@ -41,14 +41,14 @@ public class EventLoggingServiceTests
         result.ArtefactId.ShouldBeNull();
         saved.ShouldNotBeNull();
         saved.Type.ShouldBe(SubmissionType.CreateEvent);
-        await this.store.DidNotReceive().PutAsync(
+        await store.DidNotReceive().PutAsync(
             Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task SubmitEventAsync_Should_Reject_Unknown_Taxonomy()
     {
-        var service = new EventLoggingService(this.repository, this.store);
+        var service = new EventLoggingService(repository, store);
 
         await Should.ThrowAsync<ArgumentException>(() => service.SubmitEventAsync(
             CreateRequest().Event,
@@ -60,18 +60,17 @@ public class EventLoggingServiceTests
     public async Task SubmitEventAsync_Should_Reject_An_Idempotency_Key_Used_For_Another_Request()
     {
         var context = CreateContext();
-        this.repository.GetByIdempotencyKeyAsync(
+        repository.GetByIdempotencyKeyAsync(
                 context.ClientId, context.IdempotencyKey, Arg.Any<CancellationToken>())
             .Returns(new EventSubmission()
             {
                 Id = Guid.NewGuid(),
                 LogId = Guid.NewGuid(),
-                ShortId = "EVT-1",
                 ClientId = context.ClientId,
                 IdempotencyKey = context.IdempotencyKey,
                 RequestFingerprint = "different",
             });
-        var service = new EventLoggingService(this.repository, this.store);
+        var service = new EventLoggingService(repository, store);
 
         await Should.ThrowAsync<ArgumentException>(() => service.SubmitEventAsync(
             CreateRequest().Event,
@@ -82,9 +81,8 @@ public class EventLoggingServiceTests
     [Fact]
     public async Task SubmitArtefactAsync_Should_Reject_An_Unknown_Event()
     {
-        this.repository.GetEventShortIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns((string?)null);
-        var service = new EventLoggingService(this.repository, this.store);
+        repository.EventExistsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(false);
+        var service = new EventLoggingService(repository, store);
 
         await Should.ThrowAsync<ArgumentException>(() => service.SubmitArtefactAsync(
             Guid.NewGuid(),
@@ -94,61 +92,21 @@ public class EventLoggingServiceTests
     }
 
     [Fact]
-    public async Task GetSubmissionStatusAsync_Should_Return_Null_When_Not_Found()
-    {
-        var service = new EventLoggingService(this.repository, this.store);
-
-        var result = await service.GetSubmissionStatusAsync(
-            Guid.NewGuid(),
-            TestContext.Current.CancellationToken);
-
-        result.ShouldBeNull();
-    }
-
-    [Fact]
-    public async Task GetSubmissionStatusAsync_Should_Map_A_Submission()
-    {
-        var submission = new EventSubmission()
-        {
-            Id = Guid.NewGuid(),
-            LogId = Guid.NewGuid(),
-            ArtefactId = Guid.NewGuid(),
-            ShortId = "EVT-1",
-            Status = SubmissionStatus.Completed,
-            SubmittedAt = DateTimeOffset.UtcNow,
-            CompletedAt = DateTimeOffset.UtcNow,
-            FailureCode = "none",
-        };
-        this.repository.GetByIdAsync(submission.Id, Arg.Any<CancellationToken>()).Returns(submission);
-        var service = new EventLoggingService(this.repository, this.store);
-
-        var result = await service.GetSubmissionStatusAsync(
-            submission.Id,
-            TestContext.Current.CancellationToken);
-
-        result.ShouldNotBeNull();
-        result.LogId.ShouldBe(submission.LogId);
-        result.ArtefactId.ShouldBe(submission.ArtefactId);
-        result.CompletedAt.ShouldBe(submission.CompletedAt);
-        result.FailureCode.ShouldBe(submission.FailureCode);
-    }
-
-    [Fact]
     public async Task SubmitEventWithArtefactAsync_Should_Upload_To_Event_And_Artefact_Uuid_Key()
     {
         var request = CreateRequest();
         var context = CreateContext();
         EventSubmission? savedSubmission = null;
         OutboxMessage? savedOutbox = null;
-        this.repository.ResolveSubTaxonomyIdAsync(
+        repository.ResolveSubTaxonomyIdAsync(
                 "CTT", "BIRTH", "DEFAULT", Arg.Any<CancellationToken>())
             .Returns(Guid.NewGuid());
-        this.repository.CreateAsync(
+        repository.CreateAsync(
                 Arg.Do<EventSubmission>(x => savedSubmission = x),
                 Arg.Do<OutboxMessage>(x => savedOutbox = x),
                 Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
-        var service = new EventLoggingService(this.repository, this.store);
+        var service = new EventLoggingService(repository, store);
 
         var result = await service.SubmitEventWithArtefactAsync(
             request,
@@ -156,7 +114,7 @@ public class EventLoggingServiceTests
             TestContext.Current.CancellationToken);
 
         var expectedKey = $"{result.LogId:D}/{result.ArtefactId:D}";
-        await this.store.Received(1).PutAsync(
+        await store.Received(1).PutAsync(
             expectedKey,
             request.Artefact.Content,
             "application/pdf",
@@ -176,8 +134,14 @@ public class EventLoggingServiceTests
     {
         var logId = Guid.NewGuid();
         var request = PostArtefactValidatorTestsHelper.CreateArtefact();
-        this.repository.GetEventShortIdAsync(logId, Arg.Any<CancellationToken>()).Returns("EVT-ABC");
-        var service = new EventLoggingService(this.repository, this.store);
+        repository.EventExistsAsync(logId, Arg.Any<CancellationToken>()).Returns(true);
+        EventSubmission? saved = null;
+        repository.CreateAsync(
+                Arg.Do<EventSubmission>(x => saved = x),
+                Arg.Any<OutboxMessage>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        var service = new EventLoggingService(repository, store);
 
         var result = await service.SubmitArtefactAsync(
             logId,
@@ -186,8 +150,8 @@ public class EventLoggingServiceTests
             TestContext.Current.CancellationToken);
 
         result.LogId.ShouldBe(logId);
-        result.ShortId.ShouldBe("EVT-ABC");
-        await this.store.Received(1).PutAsync(
+        saved.ShouldNotBeNull();
+        await store.Received(1).PutAsync(
             $"{logId:D}/{result.ArtefactId:D}",
             request.Content,
             request.MimeType,
@@ -198,16 +162,16 @@ public class EventLoggingServiceTests
     public async Task SubmitEventWithArtefactAsync_Should_Delete_Staged_Object_When_Persistence_Fails()
     {
         var request = CreateRequest();
-        this.repository.ResolveSubTaxonomyIdAsync(
+        repository.ResolveSubTaxonomyIdAsync(
                 "CTT", "BIRTH", "DEFAULT", Arg.Any<CancellationToken>())
             .Returns(Guid.NewGuid());
         EventSubmission? attemptedSubmission = null;
-        this.repository.CreateAsync(
+        repository.CreateAsync(
                 Arg.Do<EventSubmission>(x => attemptedSubmission = x),
                 Arg.Any<OutboxMessage>(),
                 Arg.Any<CancellationToken>())
             .Returns<Task>(_ => throw new InvalidOperationException("Database unavailable"));
-        var service = new EventLoggingService(this.repository, this.store);
+        var service = new EventLoggingService(repository, store);
 
         var action = () => service.SubmitEventWithArtefactAsync(
             request,
@@ -216,7 +180,7 @@ public class EventLoggingServiceTests
 
         await action.ShouldThrowAsync<InvalidOperationException>();
         attemptedSubmission.ShouldNotBeNull();
-        await this.store.Received(1).DeleteAsync(
+        await store.Received(1).DeleteAsync(
             $"{attemptedSubmission.LogId:D}/{attemptedSubmission.ArtefactId:D}",
             CancellationToken.None);
     }
@@ -226,12 +190,12 @@ public class EventLoggingServiceTests
     {
         var request = CreateRequest();
         var context = CreateContext();
-        var firstService = new EventLoggingService(this.repository, this.store);
-        this.repository.ResolveSubTaxonomyIdAsync(
+        var firstService = new EventLoggingService(repository, store);
+        repository.ResolveSubTaxonomyIdAsync(
                 "CTT", "BIRTH", "DEFAULT", Arg.Any<CancellationToken>())
             .Returns(Guid.NewGuid());
         EventSubmission? saved = null;
-        this.repository.CreateAsync(
+        repository.CreateAsync(
                 Arg.Do<EventSubmission>(x => saved = x),
                 Arg.Any<OutboxMessage>(),
                 Arg.Any<CancellationToken>())
@@ -240,7 +204,7 @@ public class EventLoggingServiceTests
             request,
             context,
             TestContext.Current.CancellationToken);
-        this.repository.GetByIdempotencyKeyAsync(
+        repository.GetByIdempotencyKeyAsync(
                 context.ClientId,
                 context.IdempotencyKey,
                 Arg.Any<CancellationToken>())
@@ -251,7 +215,7 @@ public class EventLoggingServiceTests
             context,
             TestContext.Current.CancellationToken);
 
-        await this.store.Received(1).PutAsync(
+        await store.Received(1).PutAsync(
             Arg.Any<string>(),
             Arg.Any<Stream>(),
             Arg.Any<string>(),

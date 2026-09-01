@@ -15,8 +15,8 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.HasKey(x => x.Id);
         builder.HasAlternateKey(x => new { x.Id, x.SubTaxonomyId });
         builder.Property(x => x.Id).HasDefaultValueSql("uuid_generate_v4()");
-        builder.Property(x => x.ShortId).HasMaxLength(32).IsRequired();
-        builder.HasIndex(x => x.ShortId).IsUnique();
+        builder.Property(x => x.UrlShortCode).HasMaxLength(32).IsRequired().ValueGeneratedOnAdd();
+        builder.HasIndex(x => x.UrlShortCode).IsUnique();
         builder.HasIndex(x => new { x.CreatedAt, x.Id });
         builder.HasIndex(x => new { x.CountyParishHolding, x.CreatedAt, x.Id });
         builder.Property(x => x.CountyParishHolding).IsRequired();

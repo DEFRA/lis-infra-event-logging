@@ -10,23 +10,19 @@ using Defra.Lis.EventLogging.Services.Models;
 
 public interface IEventLoggingService
 {
-    Task<EventSubmissionResult> SubmitEventAsync(
+    Task<EventAcceptedResult> SubmitEventAsync(
         PostEvent request,
         SubmissionContext context,
         CancellationToken cancellationToken = default);
 
-    Task<EventSubmissionResult> SubmitEventWithArtefactAsync(
+    Task<EventAcceptedResult> SubmitEventWithArtefactAsync(
         PostEventWithArtefact request,
         SubmissionContext context,
         CancellationToken cancellationToken = default);
 
-    Task<EventSubmissionResult> SubmitArtefactAsync(
+    Task<EventAcceptedResult> SubmitArtefactAsync(
         Guid logId,
         PostArtefact request,
         SubmissionContext context,
-        CancellationToken cancellationToken = default);
-
-    Task<EventSubmissionStatusResult?> GetSubmissionStatusAsync(
-        Guid submissionId,
         CancellationToken cancellationToken = default);
 }

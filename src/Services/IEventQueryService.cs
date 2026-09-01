@@ -17,7 +17,7 @@ public interface IEventQueryService
         Guid logId,
         CancellationToken cancellationToken = default);
 
-    Task<EventResult?> GetEventByShortIdAsync(
-        string shortId,
+    Task<EventResult?> GetEventByUrlShortCodeAsync(
+        string urlShortCode,
         CancellationToken cancellationToken = default);
 }

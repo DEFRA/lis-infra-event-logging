@@ -14,7 +14,7 @@ public class PostEventWithArtefactValidatorTests
     [Fact]
     public void Should_Not_Have_Errors_When_Request_Is_Valid()
     {
-        var result = this.validator.TestValidate(CreateValidRequest());
+        var result = validator.TestValidate(CreateValidRequest());
 
         result.ShouldNotHaveAnyValidationErrors();
     }
@@ -27,7 +27,7 @@ public class PostEventWithArtefactValidatorTests
             Event = PostEventValidatorTests.CreateValidRequest() with { Taxonomy = string.Empty },
         };
 
-        var result = this.validator.TestValidate(request);
+        var result = validator.TestValidate(request);
 
         result.ShouldHaveValidationErrorFor("Event.Taxonomy");
     }
@@ -40,7 +40,7 @@ public class PostEventWithArtefactValidatorTests
             Artefact = PostArtefactValidatorTests.CreateValidRequest() with { Size = 0 },
         };
 
-        var result = this.validator.TestValidate(request);
+        var result = validator.TestValidate(request);
 
         result.ShouldHaveValidationErrorFor("Artefact.Size");
     }

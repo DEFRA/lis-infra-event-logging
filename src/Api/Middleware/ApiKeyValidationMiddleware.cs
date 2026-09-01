@@ -38,7 +38,7 @@ public partial class ApiKeyValidationMiddleware(string apiKey, ILogger<ApiKeyVal
         {
             var headers = context.Request.Headers;
 
-            headers.TryGetValue(RequestHeaderNames.ApiKey, out var key);
+            headers.TryGetValue(RequestHeaderNames.ApiKeyHeader, out var key);
 
             if (string.IsNullOrWhiteSpace(key))
             {
@@ -46,8 +46,8 @@ public partial class ApiKeyValidationMiddleware(string apiKey, ILogger<ApiKeyVal
                     context,
                     statusCode: StatusCodes.Status400BadRequest,
                     code: "missing_header",
-                    message: $"Header {RequestHeaderNames.ApiKey} is required.",
-                    details: new { header = $"{RequestHeaderNames.ApiKey}" });
+                    message: $"Header {RequestHeaderNames.ApiKeyHeader} is required.",
+                    details: new { header = $"{RequestHeaderNames.ApiKeyHeader}" });
                 return;
             }
 
@@ -57,8 +57,8 @@ public partial class ApiKeyValidationMiddleware(string apiKey, ILogger<ApiKeyVal
                     context,
                     statusCode: StatusCodes.Status400BadRequest,
                     code: "invalid_api_key",
-                    message: $"Header {RequestHeaderNames.ApiKey} is not valid.",
-                    details: new { header = $"{RequestHeaderNames.ApiKey}" });
+                    message: $"Header {RequestHeaderNames.ApiKeyHeader} is not valid.",
+                    details: new { header = $"{RequestHeaderNames.ApiKeyHeader}" });
                 return;
             }
 

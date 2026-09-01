@@ -25,14 +25,14 @@ public class EventSubmissionConsumerServiceTests
     {
         var submission = CreateSubmission();
         var queueMessage = CreateQueueMessage(JsonSerializer.Serialize(submission));
-        var service = this.CreateService();
+        var service = CreateService();
 
         await service.ProcessAsync(queueMessage, TestContext.Current.CancellationToken);
 
-        await this.processor.Received().ProcessAsync(
+        await processor.Received().ProcessAsync(
             Arg.Is<EventSubmissionMessage>(x => x != null && x.SubmissionId == submission.SubmissionId),
             TestContext.Current.CancellationToken);
-        await this.sqs.Received().DeleteMessageAsync(
+        await sqs.Received().DeleteMessageAsync(
             "queue-url",
             queueMessage.ReceiptHandle,
             TestContext.Current.CancellationToken);
@@ -41,14 +41,14 @@ public class EventSubmissionConsumerServiceTests
     [Fact]
     public async Task ProcessAsync_Should_Leave_Invalid_Messages_For_Retry()
     {
-        var service = this.CreateService();
+        var service = CreateService();
 
         await service.ProcessAsync(CreateQueueMessage("not-json"), TestContext.Current.CancellationToken);
 
-        await this.processor.DidNotReceive().ProcessAsync(
+        await processor.DidNotReceive().ProcessAsync(
             Arg.Any<EventSubmissionMessage>(),
             Arg.Any<CancellationToken>());
-        await this.sqs.DidNotReceive().DeleteMessageAsync(
+        await sqs.DidNotReceive().DeleteMessageAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<CancellationToken>());
@@ -58,15 +58,15 @@ public class EventSubmissionConsumerServiceTests
     public async Task ProcessAsync_Should_Not_Delete_When_Processing_Fails()
     {
         var submission = CreateSubmission();
-        this.processor.ProcessAsync(Arg.Any<EventSubmissionMessage>(), Arg.Any<CancellationToken>())
+        processor.ProcessAsync(Arg.Any<EventSubmissionMessage>(), Arg.Any<CancellationToken>())
             .Returns(_ => throw new InvalidOperationException("failed"));
-        var service = this.CreateService();
+        var service = CreateService();
 
         await service.ProcessAsync(
             CreateQueueMessage(JsonSerializer.Serialize(submission)),
             TestContext.Current.CancellationToken);
 
-        await this.sqs.DidNotReceive().DeleteMessageAsync(
+        await sqs.DidNotReceive().DeleteMessageAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<CancellationToken>());
@@ -79,7 +79,6 @@ public class EventSubmissionConsumerServiceTests
             MessageType = "CreateEvent",
             SubmissionId = Guid.NewGuid(),
             LogId = Guid.NewGuid(),
-            ShortId = "EVT-123",
         };
     }
 
@@ -91,11 +90,11 @@ public class EventSubmissionConsumerServiceTests
     private EventSubmissionConsumerService CreateService()
     {
         var services = new ServiceCollection();
-        services.AddSingleton(this.processor);
+        services.AddSingleton(processor);
         var provider = services.BuildServiceProvider();
         return new EventSubmissionConsumerService(
             provider.GetRequiredService<IServiceScopeFactory>(),
-            this.sqs,
+            sqs,
             Options.Create(new QueueOptions() { QueueUrl = "queue-url", }),
             Substitute.For<ILogger<EventSubmissionConsumerService>>());
     }

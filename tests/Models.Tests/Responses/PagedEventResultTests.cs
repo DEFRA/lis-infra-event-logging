@@ -17,7 +17,10 @@ public class PagedEventResultTests
     {
         var result = new PagedEventResult()
         {
-            Items = [], Page = 1, PageSize = 25, TotalCount = totalCount,
+            Items = [],
+            Page = 1,
+            PageSize = 25,
+            TotalCount = totalCount,
         };
 
         result.TotalPages.ShouldBe(expected);

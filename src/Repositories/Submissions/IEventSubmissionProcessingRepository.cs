@@ -28,4 +28,9 @@ public interface IEventSubmissionProcessingRepository
         Guid submissionId,
         string failureCode,
         CancellationToken cancellationToken = default);
+
+    Task<int> DeleteTerminalSubmissionsAsync(
+        DateTimeOffset olderThan,
+        int limit,
+        CancellationToken cancellationToken = default);
 }

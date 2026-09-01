@@ -80,13 +80,13 @@ public class EventQueryRepository(ReadOnlyPostgresDbContext context) : IEventQue
             .SingleOrDefaultAsync(cancellationToken);
     }
 
-    public Task<EventQueryItem?> GetByShortIdAsync(
-        string shortId,
+    public Task<EventQueryItem?> GetByUrlShortCodeAsync(
+        string urlShortCode,
         CancellationToken cancellationToken = default)
     {
         return context.Set<EventEntity>()
             .AsNoTracking()
-            .Where(x => x.ShortId == shortId)
+            .Where(x => x.UrlShortCode == urlShortCode)
             .Select(x => new EventQueryItem()
             {
                 Event = x,

@@ -14,7 +14,7 @@ public class QueryEventsValidatorTests
     [Fact]
     public void Should_Allow_Query_Without_Cph_Or_Filters()
     {
-        var result = this.validator.TestValidate(new QueryEvents());
+        var result = validator.TestValidate(new QueryEvents());
 
         result.ShouldNotHaveAnyValidationErrors();
     }
@@ -24,7 +24,7 @@ public class QueryEventsValidatorTests
     [InlineData(null)]
     public void Should_Allow_Valid_Optional_Cph(string? cph)
     {
-        var result = this.validator.TestValidate(new QueryEvents() { CountyParishHolding = cph, });
+        var result = validator.TestValidate(new QueryEvents() { CountyParishHolding = cph, });
 
         result.ShouldNotHaveAnyValidationErrors();
     }
@@ -35,7 +35,7 @@ public class QueryEventsValidatorTests
     [InlineData("12/34/5678")]
     public void Should_Reject_Invalid_Cph(string cph)
     {
-        var result = this.validator.TestValidate(new QueryEvents() { CountyParishHolding = cph, });
+        var result = validator.TestValidate(new QueryEvents() { CountyParishHolding = cph, });
 
         result.ShouldHaveValidationErrorFor(x => x.CountyParishHolding);
     }
@@ -45,7 +45,7 @@ public class QueryEventsValidatorTests
     [InlineData(26)]
     public void Should_Reject_Page_Size_Outside_One_To_TwentyFive(int pageSize)
     {
-        var result = this.validator.TestValidate(new QueryEvents() { PageSize = pageSize, });
+        var result = validator.TestValidate(new QueryEvents() { PageSize = pageSize, });
 
         result.ShouldHaveValidationErrorFor(x => x.PageSize);
     }
@@ -53,7 +53,7 @@ public class QueryEventsValidatorTests
     [Fact]
     public void Should_Reject_Page_Below_One()
     {
-        var result = this.validator.TestValidate(new QueryEvents() { Page = 0, });
+        var result = validator.TestValidate(new QueryEvents() { Page = 0, });
 
         result.ShouldHaveValidationErrorFor(x => x.Page);
     }
@@ -61,7 +61,7 @@ public class QueryEventsValidatorTests
     [Fact]
     public void Should_Allow_Multiple_Different_Filters()
     {
-        var result = this.validator.TestValidate(new QueryEvents()
+        var result = validator.TestValidate(new QueryEvents()
         {
             Filters =
             [
@@ -77,7 +77,7 @@ public class QueryEventsValidatorTests
     public void Should_Reject_Duplicate_Filters()
     {
         var filter = new EventTokenFilter() { Token = "ear_tag", Value = "UK1", };
-        var result = this.validator.TestValidate(new QueryEvents() { Filters = [filter, filter], });
+        var result = validator.TestValidate(new QueryEvents() { Filters = [filter, filter], });
 
         result.ShouldHaveValidationErrorFor(x => x.Filters);
     }

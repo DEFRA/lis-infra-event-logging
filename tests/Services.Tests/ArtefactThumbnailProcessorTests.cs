@@ -21,25 +21,25 @@ public class ArtefactThumbnailProcessorTests
     public async Task ProcessAsync_Should_Be_Idempotent_For_Terminal_Statuses(ThumbnailStatus status)
     {
         var reference = CreateReference(status);
-        this.repository.GetForThumbnailAsync(reference.Id, Arg.Any<CancellationToken>()).Returns(reference);
-        var processor = new ArtefactThumbnailProcessor(this.repository, this.store, this.thumbnailService);
+        repository.GetForThumbnailAsync(reference.Id, Arg.Any<CancellationToken>()).Returns(reference);
+        var processor = new ArtefactThumbnailProcessor(repository, store, thumbnailService);
 
         await processor.ProcessAsync(reference.Id, TestContext.Current.CancellationToken);
 
-        await this.store.DidNotReceive().GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await store.DidNotReceive().GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProcessAsync_Should_Record_Unsupported_Media_Without_Failing()
     {
         var reference = CreateReference(ThumbnailStatus.Pending, "text/plain");
-        this.repository.GetForThumbnailAsync(reference.Id, Arg.Any<CancellationToken>()).Returns(reference);
-        this.thumbnailService.Supports(reference.MimeType).Returns(false);
-        var processor = new ArtefactThumbnailProcessor(this.repository, this.store, this.thumbnailService);
+        repository.GetForThumbnailAsync(reference.Id, Arg.Any<CancellationToken>()).Returns(reference);
+        thumbnailService.Supports(reference.MimeType).Returns(false);
+        var processor = new ArtefactThumbnailProcessor(repository, store, thumbnailService);
 
         await processor.ProcessAsync(reference.Id, TestContext.Current.CancellationToken);
 
-        await this.repository.Received().SetThumbnailStatusAsync(
+        await repository.Received().SetThumbnailStatusAsync(
             reference.Id,
             ThumbnailStatus.Unsupported,
             "unsupported_media_type",
@@ -53,19 +53,22 @@ public class ArtefactThumbnailProcessorTests
         var content = new MemoryStream([1, 2, 3]);
         var generated = new GeneratedThumbnail()
         {
-            Content = [4, 5, 6], MimeType = "image/webp", Width = 320, Height = 180,
+            Content = [4, 5, 6],
+            MimeType = "image/webp",
+            Width = 320,
+            Height = 180,
         };
-        this.repository.GetForThumbnailAsync(reference.Id, Arg.Any<CancellationToken>()).Returns(reference);
-        this.thumbnailService.Supports(reference.MimeType).Returns(true);
-        this.store.GetAsync(reference.S3Path, Arg.Any<CancellationToken>())
+        repository.GetForThumbnailAsync(reference.Id, Arg.Any<CancellationToken>()).Returns(reference);
+        thumbnailService.Supports(reference.MimeType).Returns(true);
+        store.GetAsync(reference.S3Path, Arg.Any<CancellationToken>())
             .Returns(new StoredArtefact() { Content = content, ContentLength = 3, });
-        this.thumbnailService.GenerateAsync(reference.MimeType, content, Arg.Any<CancellationToken>())
+        thumbnailService.GenerateAsync(reference.MimeType, content, Arg.Any<CancellationToken>())
             .Returns(generated);
-        var processor = new ArtefactThumbnailProcessor(this.repository, this.store, this.thumbnailService);
+        var processor = new ArtefactThumbnailProcessor(repository, store, thumbnailService);
 
         await processor.ProcessAsync(reference.Id, TestContext.Current.CancellationToken);
 
-        await this.repository.Received().SaveThumbnailAsync(
+        await repository.Received().SaveThumbnailAsync(
             reference.Id,
             Arg.Is<ThumbnailPersistence>(x => x != null &&
                 x.Content.SequenceEqual(generated.Content) &&
@@ -80,17 +83,17 @@ public class ArtefactThumbnailProcessorTests
     {
         var reference = CreateReference(ThumbnailStatus.Pending);
         var content = new MemoryStream([1, 2, 3]);
-        this.repository.GetForThumbnailAsync(reference.Id, Arg.Any<CancellationToken>()).Returns(reference);
-        this.thumbnailService.Supports(reference.MimeType).Returns(true);
-        this.store.GetAsync(reference.S3Path, Arg.Any<CancellationToken>())
+        repository.GetForThumbnailAsync(reference.Id, Arg.Any<CancellationToken>()).Returns(reference);
+        thumbnailService.Supports(reference.MimeType).Returns(true);
+        store.GetAsync(reference.S3Path, Arg.Any<CancellationToken>())
             .Returns(new StoredArtefact() { Content = content, ContentLength = 3, });
-        this.thumbnailService.GenerateAsync(reference.MimeType, content, Arg.Any<CancellationToken>())
+        thumbnailService.GenerateAsync(reference.MimeType, content, Arg.Any<CancellationToken>())
             .Returns<GeneratedThumbnail>(_ => throw new InvalidDataException("invalid"));
-        var processor = new ArtefactThumbnailProcessor(this.repository, this.store, this.thumbnailService);
+        var processor = new ArtefactThumbnailProcessor(repository, store, thumbnailService);
 
         await Should.ThrowAsync<InvalidDataException>(() =>
             processor.ProcessAsync(reference.Id, TestContext.Current.CancellationToken));
-        await this.repository.Received().SetThumbnailStatusAsync(
+        await repository.Received().SetThumbnailStatusAsync(
             reference.Id,
             ThumbnailStatus.Failed,
             "generation_failed",
@@ -103,7 +106,10 @@ public class ArtefactThumbnailProcessorTests
     {
         return new ArtefactThumbnailReference()
         {
-            Id = Guid.NewGuid(), S3Path = $"events/{Guid.NewGuid()}", MimeType = mimeType, Status = status,
+            Id = Guid.NewGuid(),
+            S3Path = $"events/{Guid.NewGuid()}",
+            MimeType = mimeType,
+            Status = status,
         };
     }
 }

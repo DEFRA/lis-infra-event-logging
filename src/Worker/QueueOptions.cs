@@ -18,4 +18,10 @@ public class QueueOptions
     public int OutboxBatchSize { get; set; } = 10;
 
     public int OutboxPollIntervalSeconds { get; set; } = 2;
+
+    public int SubmissionRetentionHours { get; set; } = 24;
+
+    public int CleanupIntervalSeconds { get; set; } = 3600;
+
+    public int CleanupBatchSize { get; set; } = 100;
 }

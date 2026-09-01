@@ -11,7 +11,7 @@ public class Event
 {
     public Guid Id { get; set; }
 
-    public string ShortId { get; set; } = null!;
+    public string UrlShortCode { get; set; } = null!;
 
     public string CountyParishHolding { get; set; } = null!;
 

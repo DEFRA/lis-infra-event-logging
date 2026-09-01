@@ -14,7 +14,7 @@ public record PagedEventResult
 
     public required long TotalCount { get; init; }
 
-    public int TotalPages => this.TotalCount == 0
+    public int TotalPages => TotalCount == 0
         ? 0
-        : (int)Math.Ceiling((double)this.TotalCount / this.PageSize);
+        : (int)Math.Ceiling((double)TotalCount / PageSize);
 }

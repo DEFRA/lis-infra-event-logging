@@ -16,13 +16,12 @@ using Defra.Lis.EventLogging.Repositories.Artefacts;
 using Defra.Lis.EventLogging.Repositories.Submissions;
 using Defra.Lis.EventLogging.Services.Models;
 using DatabaseSubmissionStatus = Defra.Lis.EventLogging.Database.Domain.SubmissionStatus;
-using ModelSubmissionStatus = Defra.Lis.EventLogging.Models.Responses.Logging.SubmissionStatus;
 
 public class EventLoggingService(
     IEventSubmissionRepository repository,
     IArtefactStore artefactStore) : IEventLoggingService
 {
-    public async Task<EventSubmissionResult> SubmitEventAsync(
+    public async Task<EventAcceptedResult> SubmitEventAsync(
         PostEvent request,
         SubmissionContext context,
         CancellationToken cancellationToken = default)
@@ -41,7 +40,7 @@ public class EventLoggingService(
         return MapResult(submission);
     }
 
-    public async Task<EventSubmissionResult> SubmitEventWithArtefactAsync(
+    public async Task<EventAcceptedResult> SubmitEventWithArtefactAsync(
         PostEventWithArtefact request,
         SubmissionContext context,
         CancellationToken cancellationToken = default)
@@ -59,7 +58,7 @@ public class EventLoggingService(
         return MapResult(submission);
     }
 
-    public async Task<EventSubmissionResult> SubmitArtefactAsync(
+    public async Task<EventAcceptedResult> SubmitArtefactAsync(
         Guid logId,
         PostArtefact request,
         SubmissionContext context,
@@ -72,19 +71,14 @@ public class EventLoggingService(
             return MapResult(existing);
         }
 
-        var shortId = await repository.GetEventShortIdAsync(logId, cancellationToken)
-            ?? throw new ArgumentException($"Event '{logId}' does not exist.");
-        var submission = CreateSubmission(SubmissionType.AddArtefact, context, fingerprint, true, logId, shortId);
+        if (!await repository.EventExistsAsync(logId, cancellationToken))
+        {
+            throw new ArgumentException($"Event '{logId}' does not exist.");
+        }
+
+        var submission = CreateSubmission(SubmissionType.AddArtefact, context, fingerprint, true, logId);
         await StageAndPersistAsync(submission, null, request, null, cancellationToken);
         return MapResult(submission);
-    }
-
-    public async Task<EventSubmissionStatusResult?> GetSubmissionStatusAsync(
-        Guid submissionId,
-        CancellationToken cancellationToken = default)
-    {
-        var submission = await repository.GetByIdAsync(submissionId, cancellationToken);
-        return submission is null ? null : MapStatusResult(submission);
     }
 
     private static EventSubmission CreateSubmission(
@@ -92,8 +86,7 @@ public class EventLoggingService(
         SubmissionContext context,
         string fingerprint,
         bool hasArtefact = false,
-        Guid? logId = null,
-        string? shortId = null)
+        Guid? logId = null)
     {
         var now = DateTimeOffset.UtcNow;
         return new EventSubmission()
@@ -103,7 +96,6 @@ public class EventLoggingService(
             Status = DatabaseSubmissionStatus.Pending,
             LogId = logId ?? Guid.NewGuid(),
             ArtefactId = hasArtefact ? Guid.NewGuid() : null,
-            ShortId = shortId ?? $"EVT-{Convert.ToHexString(RandomNumberGenerator.GetBytes(6))}",
             ClientId = context.ClientId,
             IdempotencyKey = context.IdempotencyKey,
             RequestFingerprint = fingerprint,
@@ -124,7 +116,6 @@ public class EventLoggingService(
             SubmissionId = submission.Id,
             LogId = submission.LogId,
             ArtefactId = submission.ArtefactId,
-            ShortId = submission.ShortId,
             CountyParishHolding = request.CountyParishHolding,
             CreatedAt = request.CreatedAt,
             Title = request.Title,
@@ -160,7 +151,9 @@ public class EventLoggingService(
             Event = request,
             Artefact = artefact is null ? null : new
             {
-                artefact.MimeType, artefact.OriginalFilename, artefact.Size,
+                artefact.MimeType,
+                artefact.OriginalFilename,
+                artefact.Size,
             },
         });
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
@@ -170,35 +163,20 @@ public class EventLoggingService(
     {
         var value = JsonSerializer.Serialize(new
         {
-            LogId = logId, artefact.MimeType, artefact.OriginalFilename, artefact.Size,
+            LogId = logId,
+            artefact.MimeType,
+            artefact.OriginalFilename,
+            artefact.Size,
         });
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
     }
 
-    private static EventSubmissionResult MapResult(EventSubmission submission)
+    private static EventAcceptedResult MapResult(EventSubmission submission)
     {
-        return new EventSubmissionResult()
+        return new EventAcceptedResult()
         {
-            SubmissionId = submission.Id,
             LogId = submission.LogId,
             ArtefactId = submission.ArtefactId,
-            ShortId = submission.ShortId,
-            Status = Enum.Parse<ModelSubmissionStatus>(submission.Status.ToString()),
-        };
-    }
-
-    private static EventSubmissionStatusResult MapStatusResult(EventSubmission submission)
-    {
-        return new EventSubmissionStatusResult()
-        {
-            SubmissionId = submission.Id,
-            LogId = submission.LogId,
-            ArtefactId = submission.ArtefactId,
-            ShortId = submission.ShortId,
-            Status = Enum.Parse<ModelSubmissionStatus>(submission.Status.ToString()),
-            SubmittedAt = submission.SubmittedAt,
-            CompletedAt = submission.CompletedAt,
-            FailureCode = submission.FailureCode,
         };
     }
 
@@ -210,7 +188,6 @@ public class EventLoggingService(
             SubmissionId = submission.Id,
             LogId = submission.LogId,
             ArtefactId = submission.ArtefactId,
-            ShortId = submission.ShortId,
             PendingS3Key = submission.PendingS3Key,
             OriginalFilename = submission.OriginalFilename,
             MimeType = submission.MimeType,
