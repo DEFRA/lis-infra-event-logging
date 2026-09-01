@@ -1,0 +1,43 @@
+<Project>
+  <PropertyGroup>
+    <Authors>Defra</Authors>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Title>EventLogging api</Title>
+    <Description>Event logging API for the livestock information system.</Description>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>api, mongodb, livestock</PackageTags>
+    <Copyright>Copyright © $([System.DateTime]::Now.ToString("yyyy")) Defra</Copyright>
+
+    <RootNamespace>Defra.Lis.EventLogging</RootNamespace>
+    <ProductName>Defra Livestock Information Service</ProductName>
+    <RootNamespace>$(RootNamespace).$(MSBuildProjectName)</RootNamespace>
+    <AssemblyName>$(RootNamespace)</AssemblyName>
+  </PropertyGroup>
+
+  <!-- global packages -->
+  <ItemGroup>
+    <Using Include="Microsoft" />
+  </ItemGroup>
+
+  <!-- Code analysis packages and configuration-->
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json">
+      <Link>Properties\stylecop.json</Link>
+    </AdditionalFiles>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StyleCop.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="SonarAnalyzer.CSharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

@@ -1,5 +1,12 @@
 # lis-infra-event-logging
 
+PostgreSQL-backed event logging service. The database model is managed by Liquibase in
+`changelog/` and represented in the application by EF Core entities in `src/Database`.
+
+The model stores livestock events by species, taxonomy and sub-taxonomy. Event payloads
+are retained as JSONB and configured extraction rules project searchable, strongly typed
+values into `event_extracted_values`. Event artefacts reference objects held in S3.
+
 Core delivery C# ASP.NET backend template.
 
 * [Install MongoDB](#install-mongodb)
@@ -77,7 +84,7 @@ dotnet test
 
 Run CDP-Deployments application:
 ```bash
-dotnet run --project LisInfraEventLogging --launch-profile Development
+dotnet run --project LisInfraFeatureFlag --launch-profile Development
 ```
 
 ### SonarCloud

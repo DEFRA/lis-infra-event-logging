@@ -1,4 +1,3 @@
-version: '3.4'
 services:
   # floci is a replacement for localstack. It emulates AWS resources (sqs, sns, s3 etc) for local development
   # See: https://floci.io for more details
@@ -22,63 +21,94 @@ services:
     networks:
       - cdp-tenant
 
-  mongodb:
-    image: mongo:7.0.28
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: lis_infra_feature_flag_ddl
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lis_infra_feature_flag
     networks:
       - cdp-tenant
-    ports:
-      - '27017:27017'
     volumes:
-      - mongodb-data:/data
-
-  ################################################################################
-
-  # your-frontend:
-  #   image: defradigital/your-frontend:${YOUR_FRONTEND_VERSION:-latest}
-  #   ports:
-  #     - '3000:3000'
-  #   links:
-  #     - 'floci:floci'
-  #     - 'redis:redis'
-  #   depends_on:
-  #     floci:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_started
-  #   env_file:
-  #     - 'compose/aws.env'
-  #   environment:
-  #     PORT: 3000
-  #     NODE_ENV: development
-  #     REDIS_HOST: redis
-  #     USE_SINGLE_INSTANCE_CACHE: true
-  #   networks:
-  #     - cdp-tenant
-
-  your-backend:
-    build: ./
+      - postgres-data:/data
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U lis_infra_feature_flag_ddl -d lis_infra_feature_flag" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  
+  liquibase:
+    image: liquibase/liquibase:5.0.1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    volumes:
+      - ./changelog:/liquibase/changelog
+    command: >
+      "/liquibase/liquibase lpm add postgresql || true &&
+      /liquibase/liquibase --url=jdbc:postgresql://postgres:5432/lis_infra_feature_flag --username=lis_infra_feature_flag_ddl --password=postgres --searchPath=/liquibase/changelog --changeLogFile=db.changelog.xml --liquibaseSchemaName=public update --context-filter=default"
+    networks:
+      - cdp-tenant
+  
+  lis-infra-feature-flag-service:
+    container_name: lis-infra-feature-flag-service
+    platform: linux
+    build:
+      context: ./
     ports:
-      - '8085:8085'
+      - '8080:8080'
     links:
       - 'floci:floci'
-      - 'mongodb:mongodb'
+      - 'postgres:postgres'
     depends_on:
       floci:
         condition: service_healthy
-      mongodb:
+      postgres:
         condition: service_started
+      liquibase:
+        condition: service_completed_successfully
     env_file:
       - 'compose/aws.env'
     environment:
-      ASPNETCORE_URLS: http://+:8085
-      Mongo__DatabaseUri: mongodb://mongodb:27017/
+      PORT: 8080
+      ASPNETCORE_ENVIRONMENT: Development
+      LOCALSTACK_ENDPOINT: http://localstack:4566
+      POSTGRES_URI: http://postgres:5432
+      ConnectionStrings__PostgresConnection: "User ID=lis_infra_feature_flag_ddl;Password=postgres;Host=postgres;Database=lis_infra_feature_flag;"
+      ConnectionStrings__ReadOnlyPostgresConnection: "User ID=lis_infra_feature_flag_ddl;Password=postgres;Host=postgres;Database=lis_infra_feature_flag;"
     networks:
       - cdp-tenant
 
-################################################################################
+  event-logging-worker:
+    container_name: event-logging-worker
+    platform: linux
+    build:
+      context: ./
+      dockerfile: src/Worker/Dockerfile
+    depends_on:
+      floci:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      liquibase:
+        condition: service_completed_successfully
+    env_file:
+      - 'compose/aws.env'
+    environment:
+      AWS_ENDPOINT_URL: http://floci:4566
+      ConnectionStrings__PostgresConnection: "User ID=lis_infra_feature_flag_ddl;Password=postgres;Host=postgres;Database=lis_infra_feature_flag;"
+      ConnectionStrings__ReadOnlyPostgresConnection: "User ID=lis_infra_feature_flag_ddl;Password=postgres;Host=postgres;Database=lis_infra_feature_flag;"
+      EventSubmissionQueue__QueueUrl: http://floci:4566/000000000000/event-submission
+    networks:
+      - cdp-tenant
 
 volumes:
-  mongodb-data:
+  postgres-data:
 
 networks:
   cdp-tenant:
