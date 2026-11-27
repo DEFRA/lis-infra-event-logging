@@ -11,7 +11,7 @@ updates:
       time: '10:30'
       timezone: Europe/London
     commit-message:
-      prefix: 'LREG-XXX:'
+      prefix: 'BOT:'
     versioning-strategy: increase
     allow:
       - dependency-type: direct
@@ -25,6 +25,13 @@ updates:
       lis:
         patterns:
           - '@defra/lis-*'
+      # stylelint and its configs pin each other through peer ranges, so every
+      # bump of the family arrives together. Listed before `dependencies`
+      # because a package joins the first group it matches.
+      stylelint:
+        patterns:
+          - stylelint
+          - stylelint-*
       # One pull request for every other patch and minor bump.
       dependencies:
         exclude-patterns:
@@ -55,7 +62,7 @@ updates:
       time: '10:30'
       timezone: Europe/London
     commit-message:
-      prefix: 'LREG-XXX:'
+      prefix: 'BOT:'
     cooldown:
       default-days: 3
       # Our own workflows are released and consumed the same day.
